@@ -1,9 +1,10 @@
 import random
-from marketsim.fourheap.constants import BUY, SELL
-from marketsim.market.market import Market
-from marketsim.fundamental.mean_reverting import GaussianMeanReverting
-from marketsim.fundamental.lazy_mean_reverting import LazyGaussianMeanReverting
-from marketsim.agent.zero_intelligence_agent import ZIAgent
+from typing import List, Optional, Sequence
+
+from ..market.market import Market
+from ..fundamental.mean_reverting import GaussianMeanReverting
+from ..fundamental.lazy_mean_reverting import LazyGaussianMeanReverting
+from ..agent.zero_intelligence_agent import ZIAgent
 
 
 
@@ -17,18 +18,28 @@ class Simulator:
                  r: float = .6,
                  shock_var=10,
                  q_max: int = 10,
-                 zi_shade: List = [10, 30]):
+                 zi_shade: Optional[List[float]] = None,
+                 pv_var: float = 5e6,
+                 market_observers: Optional[Sequence[object]] = None):
         self.num_agents = num_background_agents
         self.num_assets = num_assets
         self.sim_time = sim_time
         self.lam = lam
         self.time = 0
 
+        if zi_shade is None:
+            zi_shade = [10, 30]
+
         self.markets = []
         for _ in range(num_assets):
             fundamental = GaussianMeanReverting(mean=mean, final_time=sim_time, r=r, shock_var=shock_var)
             # fundamental = LazyGaussianMeanReverting(mean=mean, final_time=sim_time, r=r, shock_var=shock_var)
             self.markets.append(Market(fundamental=fundamental, time_steps=sim_time))
+
+        self._market_observers = [None] * len(self.markets)
+        if market_observers is not None:
+            for idx, observer in enumerate(market_observers[:len(self.markets)]):
+                self._market_observers[idx] = observer
 
         self.agents = {}
         for agent_id in range(num_background_agents):
@@ -37,30 +48,41 @@ class Simulator:
                     agent_id=agent_id,
                     market=self.markets[0],
                     q_max=q_max,
-                    shade=[10, 30]
+                    shade=zi_shade,
+                    pv_var=pv_var
                 ))
 
     def step(self):
         # print(f'It is time step {self.time}')
         if self.time < self.sim_time:
-            for market in self.markets:
+            for market_index, market in enumerate(self.markets):
                 for agent_id in self.agents:
                     if random.random() <= self.lam:
                         agent = self.agents[agent_id]
                         market.withdraw_all(agent_id)
-                        side = random.choice([BUY, SELL])
-                        orders = agent.take_action(side)
+                        orders = agent.take_action()
                         # print(f'Agent {agent.agent_id} is entering the market and makes order {order}')
                         market.add_orders(orders)
-                new_orders = market.step()
+                new_orders = market.step() or []
                 for matched_order in new_orders:
                     agent_id = matched_order.order.agent_id
                     quantity = matched_order.order.order_type * matched_order.order.quantity
                     cash = -matched_order.price * matched_order.order.quantity * matched_order.order.order_type
                     self.agents[agent_id].update_position(quantity, cash)
+                    observer = self._market_observers[market_index]
+                    if observer is not None and hasattr(observer, "handle_trade"):
+                        observer.handle_trade(matched_order)
+                observer = self._market_observers[market_index]
+                if observer is not None and hasattr(observer, "handle_top_of_book"):
+                    observer.handle_top_of_book(market)
             self.time += 1
         else:
             self.end_sim()
+
+    def set_market_observer(self, market_index: int, observer: object) -> None:
+        if market_index < 0 or market_index >= len(self._market_observers):
+            raise IndexError("market_index out of range")
+        self._market_observers[market_index] = observer
 
     def end_sim(self):
         fundamental_val = self.markets[0].get_final_fundamental()

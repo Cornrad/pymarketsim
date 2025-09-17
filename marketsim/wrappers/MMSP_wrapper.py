@@ -3,14 +3,20 @@ from gymnasium import spaces
 import numpy as np
 import math
 import random
-from fourheap.constants import BUY, SELL
-from market.market import Market
-from fundamental.mean_reverting import GaussianMeanReverting
-from agent.zero_intelligence_agent import ZIAgent
-from agent.hbl_agent import HBLAgent
-from agent.spoofer import SpoofingAgent
-from agent.market_maker import MMAgent
-from wrappers.metrics import volume_imbalance, queue_imbalance, realized_volatility, relative_strength_index, midprice_move
+from ..fourheap.constants import BUY, SELL
+from ..market.market import Market
+from ..fundamental.mean_reverting import GaussianMeanReverting
+from ..agent.zero_intelligence_agent import ZIAgent
+from ..agent.hbl_agent import HBLAgent
+from ..agent.spoofer import SpoofingAgent
+from ..agent.market_maker import MMAgent
+from ..wrappers.metrics import (
+    volume_imbalance,
+    queue_imbalance,
+    realized_volatility,
+    relative_strength_index,
+    midprice_move,
+)
 import torch.distributions as dist
 import torch
 from collections import defaultdict
@@ -445,7 +451,7 @@ class MMSPEnv(gym.Env):
                     if agent_id != self.MM_id:
                         random.seed(self.time + self.random_seed[self.time])
                         side = random.choice([BUY, SELL])
-                        orders = agent.take_action(side, seed = self.random_seed[self.time])
+                        orders = agent.take_action()
                     else:
                         orders = agent.take_action()
                     market.add_orders(orders)
@@ -470,7 +476,7 @@ class MMSPEnv(gym.Env):
         for market in self.markets:
             market.event_queue.set_time(self.time)
             market.withdraw_all(self.num_agents)
-            orders = self.spoofer.take_action(action, seed=self.random_seed[self.time])
+            orders = self.spoofer.take_action(action)
             market.add_orders(orders)
             #Regular order first then spoofing order
             self.spoofer_orders[0].append((action[0]))

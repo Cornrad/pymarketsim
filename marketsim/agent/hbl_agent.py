@@ -1,14 +1,16 @@
 import random
 import sys
-import scipy as sp
-import numpy as np
-from agent.agent import Agent
-from market.market import Market
-from fourheap.order import Order
-from private_values.private_values import PrivateValues
-from fourheap.constants import BUY, SELL
 from typing import List
+
+import numpy as np
+import scipy as sp
 from fastcubicspline import FCS
+
+from ..market.market import Market
+from ..fourheap.order import Order
+from ..private_values.private_values import PrivateValues
+from ..fourheap.constants import BUY, SELL
+from .agent import Agent
 
 
 class HBLAgent(Agent):
