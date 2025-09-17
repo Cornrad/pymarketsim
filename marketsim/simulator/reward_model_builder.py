@@ -12,9 +12,9 @@ import torch.optim as optim
 from torch.utils.data import DataLoader, TensorDataset
 from tqdm import tqdm
 
-from marketsim.simulator.sampled_arrival_simulator import SimulatorSampledArrival
-from marketsim.agent.reward_model_agent import RewardModelAgent
-from marketsim.simulator.reward_model_data_collector import RewardModelDataCollector
+from .sampled_arrival_simulator import SimulatorSampledArrival
+from ..agent.reward_model_agent import RewardModelAgent
+from .reward_model_data_collector import RewardModelDataCollector
 
 # Set random seeds for reproducibility
 random.seed(42)

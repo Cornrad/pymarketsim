@@ -2,7 +2,7 @@ from tqdm import tqdm
 import numpy as np
 import matplotlib.pyplot as plt
 import time
-from simulator.sampled_arrival_simulator import SimulatorSampledArrival
+from marketsim.simulator.sampled_arrival_simulator import SimulatorSampledArrival
 
 surpluses = []
 valueAgents = []
