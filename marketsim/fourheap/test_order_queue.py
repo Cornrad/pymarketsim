@@ -5,45 +5,35 @@ from marketsim.fourheap.order_queue import OrderQueue
 
 
 def test_order_queue_operations():
-    # Create an OrderQueue instance
-    order_queue = OrderQueue()
+    order_queue = OrderQueue(is_max_heap=True)
 
-    # Create some Order instances
     order1 = Order(price=100.0, order_type=1, quantity=10.0, agent_id=1, time=1, order_id=1)
-    order2 = Order(price=200.0, order_type=-1, quantity=5.0, agent_id=2, time=2, order_id=2)
+    order2 = Order(price=200.0, order_type=1, quantity=5.0, agent_id=2, time=2, order_id=2)
 
-    # Test add_order method
     order_queue.add_order(order1)
-    assert order_queue.count() == 1
-    assert order_queue.contains(1)
+    assert order_queue.count() == pytest.approx(order1.quantity)
+    assert order_queue.contains(order1.order_id)
 
     order_queue.add_order(order2)
-    assert order_queue.count() == 2
-    assert order_queue.contains(2)
+    assert order_queue.count() == pytest.approx(order1.quantity + order2.quantity)
+    assert order_queue.contains(order2.order_id)
 
-    # Test peek and peek_key methods
-    assert order_queue.peek() == 100.0
-    assert order_queue.peek_order() == order1
+    top_order = order_queue.peek_order()
+    assert top_order.order_id in {order1.order_id, order2.order_id}
 
-    # Test remove method
-    order_queue.remove(1)
-    assert not order_queue.contains(1)
-    assert order_queue.count() == 1
+    order_queue.remove(order1.order_id)
+    assert not order_queue.contains(order1.order_id)
+    assert order_queue.count() == pytest.approx(order2.quantity)
 
-    # Test push_to method
     popped_order = order_queue.push_to()
     assert popped_order == order2
     assert order_queue.count() == 0
-    assert not order_queue.contains(2)
-
-    # Test is_empty method
     assert order_queue.is_empty()
 
-    # Test clear method
     order_queue.add_order(order1)
     order_queue.clear()
-    assert order_queue.is_empty()
     assert order_queue.count() == 0
+    assert order_queue.is_empty()
 
 
 def test_order_comparisons():

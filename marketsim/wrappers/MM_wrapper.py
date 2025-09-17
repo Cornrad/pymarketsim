@@ -320,7 +320,7 @@ class MMEnv(gym.Env):
                     agent = self.agents[agent_id]
                     market.withdraw_all(agent_id)
                     side = random.choice([BUY, SELL])
-                    orders = agent.take_action(side)
+                    orders = agent.take_action()
                     market.add_orders(orders)
 
                     if self.arrival_index == self.arrivals_sampled:

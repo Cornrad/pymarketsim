@@ -19,6 +19,7 @@ from .simulator.simulator import Simulator
 from .market.market import Market
 from .fourheap.fourheap import FourHeap
 from .fourheap.order_queue import OrderQueue
+from .experiment import Config, Experiment
 
 __version__ = "0.1.0"
 
@@ -27,4 +28,6 @@ __all__ = [
     "Market",
     "FourHeap",
     "OrderQueue",
+    "Experiment",
+    "Config",
 ]

@@ -1,4 +1,5 @@
 from collections import defaultdict
+from typing import Optional, Sequence
 
 import torch
 import torch.distributions as dist
@@ -21,7 +22,8 @@ class SimulatorSampledArrival:
                  shade=None,
                  eta: float = 0.2,
                  hbl_agent: bool = False,
-                 lam_r: float = None
+                 lam_r: float = None,
+                 market_observers: Optional[Sequence[object]] = None
                  ):
 
         if shade is None:
@@ -47,6 +49,11 @@ class SimulatorSampledArrival:
         for _ in range(num_assets):
             fundamental = LazyGaussianMeanReverting(mean=mean, final_time=sim_time, r=r, shock_var=shock_var)
             self.markets.append(Market(fundamental=fundamental, time_steps=sim_time))
+
+        self._market_observers = [None] * len(self.markets)
+        if market_observers is not None:
+            for idx, observer in enumerate(market_observers[:len(self.markets)]):
+                self._market_observers[idx] = observer
 
         self.agents = {}
         # TEMP FOR HBL TESTING
@@ -93,7 +100,7 @@ class SimulatorSampledArrival:
     def step(self):
         agents = self.arrivals[self.time]
         if self.time < self.sim_time:
-            for market in self.markets:
+            for market_index, market in enumerate(self.markets):
                 market.event_queue.set_time(self.time)
                 for agent_id in agents:
                     agent = self.agents[agent_id]
@@ -107,13 +114,19 @@ class SimulatorSampledArrival:
                     self.arrivals[self.arrival_times[self.arrival_index].item() + 1 + self.time].append(agent_id)
                     self.arrival_index += 1
 
-                new_orders = market.step()
+                new_orders = market.step() or []
                 for matched_order in new_orders:
                     agent_id = matched_order.order.agent_id
                     quantity = matched_order.order.order_type*matched_order.order.quantity
                     cash = -matched_order.price*matched_order.order.quantity*matched_order.order.order_type
                     self.agents[agent_id].update_position(quantity, cash)
+                    observer = self._market_observers[market_index]
+                    if observer is not None and hasattr(observer, "handle_trade"):
+                        observer.handle_trade(matched_order)
                     # self.agents[agent_id].order_history = None
+                observer = self._market_observers[market_index]
+                if observer is not None and hasattr(observer, "handle_top_of_book"):
+                    observer.handle_top_of_book(market)
         else:
             self.end_sim()
 
@@ -138,6 +151,11 @@ class SimulatorSampledArrival:
                 counter += 1
             self.time += 1
         self.step()
+
+    def set_market_observer(self, market_index: int, observer: object) -> None:
+        if market_index < 0 or market_index >= len(self._market_observers):
+            raise IndexError("market_index out of range")
+        self._market_observers[market_index] = observer
 
 
 def sample_arrivals(p, num_samples):
