@@ -1,6 +1,7 @@
 import random
 from typing import List, Optional, Sequence
 
+
 from ..market.market import Market
 from ..fundamental.mean_reverting import GaussianMeanReverting
 from ..fundamental.lazy_mean_reverting import LazyGaussianMeanReverting
@@ -19,8 +20,10 @@ class Simulator:
                  shock_var=10,
                  q_max: int = 10,
                  zi_shade: Optional[List[float]] = None,
+
                  pv_var: float = 5e6,
                  market_observers: Optional[Sequence[object]] = None):
+
         self.num_agents = num_background_agents
         self.num_assets = num_assets
         self.sim_time = sim_time

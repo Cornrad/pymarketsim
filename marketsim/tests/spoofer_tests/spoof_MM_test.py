@@ -1,5 +1,5 @@
-import gymnasium as gym
 
+import gymnasium as gym
 from marketsim.wrappers import MMSP_wrapper
 
 
