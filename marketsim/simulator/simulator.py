@@ -1,9 +1,10 @@
 import random
-from marketsim.fourheap.constants import BUY, SELL
-from marketsim.market.market import Market
-from marketsim.fundamental.mean_reverting import GaussianMeanReverting
-from marketsim.fundamental.lazy_mean_reverting import LazyGaussianMeanReverting
-from marketsim.agent.zero_intelligence_agent import ZIAgent
+from typing import List, Optional
+
+from ..market.market import Market
+from ..fundamental.mean_reverting import GaussianMeanReverting
+from ..fundamental.lazy_mean_reverting import LazyGaussianMeanReverting
+from ..agent.zero_intelligence_agent import ZIAgent
 
 
 
@@ -17,12 +18,16 @@ class Simulator:
                  r: float = .6,
                  shock_var=10,
                  q_max: int = 10,
-                 zi_shade: List = [10, 30]):
+                 zi_shade: Optional[List[float]] = None,
+                 pv_var: float = 5e6):
         self.num_agents = num_background_agents
         self.num_assets = num_assets
         self.sim_time = sim_time
         self.lam = lam
         self.time = 0
+
+        if zi_shade is None:
+            zi_shade = [10, 30]
 
         self.markets = []
         for _ in range(num_assets):
@@ -37,7 +42,8 @@ class Simulator:
                     agent_id=agent_id,
                     market=self.markets[0],
                     q_max=q_max,
-                    shade=[10, 30]
+                    shade=zi_shade,
+                    pv_var=pv_var
                 ))
 
     def step(self):
@@ -48,8 +54,7 @@ class Simulator:
                     if random.random() <= self.lam:
                         agent = self.agents[agent_id]
                         market.withdraw_all(agent_id)
-                        side = random.choice([BUY, SELL])
-                        orders = agent.take_action(side)
+                        orders = agent.take_action()
                         # print(f'Agent {agent.agent_id} is entering the market and makes order {order}')
                         market.add_orders(orders)
                 new_orders = market.step()

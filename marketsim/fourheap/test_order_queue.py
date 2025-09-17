@@ -1,7 +1,7 @@
 import pytest
 
-from order import Order
-from order_queue import OrderQueue
+from marketsim.fourheap.order import Order
+from marketsim.fourheap.order_queue import OrderQueue
 
 
 def test_order_queue_operations():
